@@ -20,7 +20,7 @@ func resourceDatadogIntegrationPagerduty() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"services": &schema.Schema{
+			"service": &schema.Schema{
 				Type:        schema.TypeList,
 				Required:    true,
 				Description: "A list of service names and service keys.",
@@ -83,7 +83,7 @@ func resourceDatadogIntegrationPagerdutyCreate(d *schema.ResourceData, meta inte
 	pd.Schedules = schedules
 
 	services := []datadog.ServicePDRequest{}
-	for _, sInterface := range d.Get("services").([]interface{}) {
+	for _, sInterface := range d.Get("service").([]interface{}) {
 		s := sInterface.(map[string]interface{})
 
 		service := datadog.ServicePDRequest{}
@@ -111,14 +111,31 @@ func resourceDatadogIntegrationPagerdutyCreate(d *schema.ResourceData, meta inte
 func resourceDatadogIntegrationPagerdutyRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*datadog.Client)
 
-	fmt.Printf("%#v\n", d)
-
 	pd, err := client.GetIntegrationPD()
 	if err != nil {
 		return err
 	}
 
-	d.Set("services", pd.Services)
+	services := []map[string]string{}
+	for _, service := range pd.Services {
+
+		serviceName, ok := datadog.GetStringOk(service.ServiceName)
+		if !ok {
+			return fmt.Errorf("Error")
+		}
+
+		serviceKey, ok := datadog.GetStringOk(service.ServiceKey)
+		if !ok {
+			return fmt.Errorf("Error")
+		}
+
+		services = append(services, map[string]string{
+			"service_name": serviceName,
+			"service_key":  serviceKey,
+		})
+	}
+
+	d.Set("service", services)
 	d.Set("subdomain", pd.GetSubdomain())
 	d.Set("schedules", pd.Schedules)
 	d.Set("api_token", pd.GetAPIToken())
@@ -147,19 +164,9 @@ func resourceDatadogIntegrationPagerdutyUpdate(d *schema.ResourceData, meta inte
 }
 
 func resourceDatadogIntegrationPagerdutyDelete(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*datadog.Client)
 
-	/*
-		// Datadog does not actually delete users, but instead marks them as disabled.
-		// Bypass DeleteUser if GetUser returns User.Disabled == true, otherwise it will 400.
-		if u, err := client.GetUser(d.Id()); err == nil && u.GetDisabled() {
-			return nil
-		}
-
-		if err := client.DeleteUser(d.Id()); err != nil {
-			return err
-		}
-	*/
-	return nil
+	return client.DeleteIntegrationPD()
 }
 
 func resourceDatadogIntegrationPagerdutyImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {

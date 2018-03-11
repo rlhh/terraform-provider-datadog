@@ -6,12 +6,7 @@ import (
 )
 
 func testAccCheckDatadogIntegrationPagerdutyDestroy(s *terraform.State) error {
-	_ = testAccProvider.Meta().(*datadog.Client)
+	client := testAccProvider.Meta().(*datadog.Client)
 
-	/*
-		if err := datadogUserDestroyHelper(s, client); err != nil {
-			return err
-		}
-	*/
-	return nil
+	return client.DeleteIntegrationPD()
 }
