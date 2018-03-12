@@ -9,6 +9,8 @@ import (
 	datadog "github.com/zorkian/go-datadog-api"
 )
 
+// We're not testing for schedules because Datadog actively verifies it with Pagerduty
+
 func TestAccDatadogIntegrationPagerduty_Basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -24,9 +26,37 @@ func TestAccDatadogIntegrationPagerduty_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"datadog_integration_pagerduty.foo", "api_token", "*****"),
 					resource.TestCheckResourceAttr(
-						"datadog_integration_pagerduty.foo", "service.0.service_name", "test_service"),
+						"datadog_integration_pagerduty.foo", "services.0.service_name", "test_service"),
 					resource.TestCheckResourceAttr(
-						"datadog_integration_pagerduty.foo", "service.0.service_key", "*****"),
+						"datadog_integration_pagerduty.foo", "services.0.service_key", "*****"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDatadogIntegrationPagerduty_TwoServices(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDatadogIntegrationPagerdutyDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCheckDatadogIntegrationPagerdutyConfig_TwoServices,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDatadogIntegrationPagerdutyExists("datadog_integration_pagerduty.foo"),
+					resource.TestCheckResourceAttr(
+						"datadog_integration_pagerduty.foo", "subdomain", "testdomain"),
+					resource.TestCheckResourceAttr(
+						"datadog_integration_pagerduty.foo", "api_token", "*****"),
+					resource.TestCheckResourceAttr(
+						"datadog_integration_pagerduty.foo", "services.0.service_name", "test_service"),
+					resource.TestCheckResourceAttr(
+						"datadog_integration_pagerduty.foo", "services.0.service_key", "*****"),
+					resource.TestCheckResourceAttr(
+						"datadog_integration_pagerduty.foo", "services.1.service_name", "test_service_2"),
+					resource.TestCheckResourceAttr(
+						"datadog_integration_pagerduty.foo", "services.1.service_key", "*****"),
 				),
 			},
 		},
@@ -68,3 +98,22 @@ const testAccCheckDatadogIntegrationPagerdutyConfig = `
    api_token = "*****"
  }
  `
+
+const testAccCheckDatadogIntegrationPagerdutyConfig_TwoServices = `
+ resource "datadog_integration_pagerduty" "foo" {
+   services
+     {
+         service_name = "test_service",
+         service_key  = "*****",
+     }
+
+   services
+     {
+		service_name = "test_service_2",
+		service_key  = "*****",
+	 }
+
+   subdomain = "testdomain"
+   api_token = "*****"
+ }
+`
