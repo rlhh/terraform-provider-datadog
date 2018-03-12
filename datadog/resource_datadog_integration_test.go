@@ -58,7 +58,7 @@ func testAccCheckDatadogIntegrationPagerdutyDestroy(s *terraform.State) error {
 
 const testAccCheckDatadogIntegrationPagerdutyConfig = `
  resource "datadog_integration_pagerduty" "foo" {
-   service
+   services
      {
          service_name = "test_service",
          service_key  = "*****",

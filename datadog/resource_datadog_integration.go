@@ -20,7 +20,7 @@ func resourceDatadogIntegrationPagerduty() *schema.Resource {
 		},
 
 		Schema: map[string]*schema.Schema{
-			"service": &schema.Schema{
+			"services": &schema.Schema{
 				Type:        schema.TypeList,
 				Required:    true,
 				Description: "A list of service names and service keys.",
@@ -81,7 +81,7 @@ func buildIntegrationPagerduty(d *schema.ResourceData) (*datadog.IntegrationPDRe
 	pd.Schedules = schedules
 
 	services := []datadog.ServicePDRequest{}
-	for _, sInterface := range d.Get("service").([]interface{}) {
+	for _, sInterface := range d.Get("services").([]interface{}) {
 		s := sInterface.(map[string]interface{})
 
 		service := datadog.ServicePDRequest{}
@@ -133,7 +133,7 @@ func resourceDatadogIntegrationPagerdutyRead(d *schema.ResourceData, meta interf
 		})
 	}
 
-	d.Set("service", services)
+	d.Set("services", services)
 	d.Set("subdomain", pd.GetSubdomain())
 	d.Set("schedules", pd.Schedules)
 	d.Set("api_token", pd.GetAPIToken())
