@@ -69,9 +69,7 @@ func resourceDatadogIntegrationPagerdutyExists(d *schema.ResourceData, meta inte
 	return true, nil
 }
 
-func resourceDatadogIntegrationPagerdutyCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*datadog.Client)
-
+func buildIntegrationPagerduty(d *schema.ResourceData) (*datadog.IntegrationPDRequest, error) {
 	pd := &datadog.IntegrationPDRequest{}
 	pd.SetSubdomain(d.Get("subdomain").(string))
 	pd.SetAPIToken(d.Get("api_token").(string))
@@ -93,6 +91,17 @@ func resourceDatadogIntegrationPagerdutyCreate(d *schema.ResourceData, meta inte
 		services = append(services, service)
 	}
 	pd.Services = services
+
+	return pd, nil
+}
+
+func resourceDatadogIntegrationPagerdutyCreate(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*datadog.Client)
+
+	pd, err := buildIntegrationPagerduty(d)
+	if err != nil {
+		return fmt.Errorf("Failed to parse resource configuration: %s", err.Error())
+	}
 
 	if err := client.CreateIntegrationPD(pd); err != nil {
 		return fmt.Errorf("Failed to create integration pagerduty using Datadog API: %s", err.Error())
@@ -118,20 +127,9 @@ func resourceDatadogIntegrationPagerdutyRead(d *schema.ResourceData, meta interf
 
 	services := []map[string]string{}
 	for _, service := range pd.Services {
-
-		serviceName, ok := datadog.GetStringOk(service.ServiceName)
-		if !ok {
-			return fmt.Errorf("Error")
-		}
-
-		serviceKey, ok := datadog.GetStringOk(service.ServiceKey)
-		if !ok {
-			return fmt.Errorf("Error")
-		}
-
 		services = append(services, map[string]string{
-			"service_name": serviceName,
-			"service_key":  serviceKey,
+			"service_name": service.GetServiceName(),
+			"service_key":  service.GetServiceKey(),
 		})
 	}
 
@@ -144,23 +142,18 @@ func resourceDatadogIntegrationPagerdutyRead(d *schema.ResourceData, meta interf
 }
 
 func resourceDatadogIntegrationPagerdutyUpdate(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*datadog.Client)
 
-	/*
-		var u datadog.User
-		u.SetDisabled(d.Get("disabled").(bool))
-		u.SetEmail(d.Get("email").(string))
-		u.SetHandle(d.Id())
-		u.SetIsAdmin(d.Get("is_admin").(bool))
-		u.SetName(d.Get("name").(string))
-		u.SetRole(d.Get("role").(string))
+	pd, err := buildIntegrationPagerduty(d)
+	if err != nil {
+		return fmt.Errorf("Failed to parse resource configuration: %s", err.Error())
+	}
 
-		if err := client.UpdateUser(u); err != nil {
-			return fmt.Errorf("error updating user: %s", err.Error())
-		}
+	if err := client.UpdateIntegrationPD(pd); err != nil {
+		return fmt.Errorf("Failed to create integration pagerduty using Datadog API: %s", err.Error())
+	}
 
-		return resourceDatadogIntegrationPagerdutyRead(d, meta)
-	*/
-	return nil
+	return resourceDatadogIntegrationPagerdutyRead(d, meta)
 }
 
 func resourceDatadogIntegrationPagerdutyDelete(d *schema.ResourceData, meta interface{}) error {
@@ -173,5 +166,6 @@ func resourceDatadogIntegrationPagerdutyImport(d *schema.ResourceData, meta inte
 	if err := resourceDatadogIntegrationPagerdutyRead(d, meta); err != nil {
 		return nil, err
 	}
+
 	return []*schema.ResourceData{d}, nil
 }
